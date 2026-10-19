@@ -1,12 +1,18 @@
-# Fireside
+# Postscript
 
-**Family stories disappear with the people who lived them. Fireside turns a parent's quick voice memos into a connected life story their kids can actually read.**
+**Some stories are hard to tell, and harder to tell at the right time. Postscript lets immigrant grandparents record voice letters to their family, and decide who hears each one, and when.**
 
-Memories don't come back in chapters. They come back in fragments, while cooking or driving. Fireside lets a parent or grandparent tap and talk for a minute whenever a memory hits, in whatever language they think in. AI places each fragment on their life timeline, connects it to the people it mentions, and stitches related memos into chapters written in their own words.
+Each recording is a letter. Shared letters are stitched into a family book in the storyteller's own words, with her voice under every passage. Hard stories (an arrest, a depression, a family rift) can be sealed: opened by a chosen person on a chosen day, like Lily on her 18th birthday, or by a trusted keeper "when I'm gone." Only the storyteller can see or change a sealed letter.
+
+Postscript is a designathon project built on Fireside, our hackathon app.
 
 Built at [hackathon name] · October 2026
 
 ---
+
+## Demo mode
+
+`VITE_DEMO_MODE` defaults to `true`: the app runs with no backend, on an in-memory store saved to localStorage and seeded with Ama's family (recorded audio goes to IndexedDB). Tap your avatar (top right of the header) for the demo controls: switch the viewer (Ama, Lily, Mei, David), set a fake "today", play the keeper's release, or reset the seed. Set `VITE_DEMO_MODE=false` to use Supabase, after running `supabase/postscript.sql`. Seed audio: `scripts/make-demo-audio.sh` (macOS `say`).
 
 ## How it works
 

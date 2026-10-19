@@ -1,13 +1,18 @@
 // /storytime/:memoId — one memory as a rhyming picture book for the grandkids, one page at a time,
 // with the storyteller's language under each page and her real recording one tap away.
-import { BookOpen, ChevronLeft, ChevronRight, Clapperboard, Pause, Play, RefreshCw, Sparkles } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { BookOpen, Clapperboard, Play, RefreshCw, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useParams } from 'react-router'
 import { listMemos, makeStoryMovie, makeStorybook } from '../api'
 import { AppShell } from '../components/ui/AppShell'
+import { AudioCard } from '../components/ui/AudioCard'
+import { Avatar } from '../components/ui/Avatar'
+import { IconButton, PrimaryButton, TextButton } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { Notice } from '../components/ui/Notice'
+import { Pager } from '../components/ui/Pager'
+import { Segmented } from '../components/ui/Segmented'
 import { Diamond } from '../components/ui/story'
-import { useAudio } from '../lib/useAudio'
 import type { Memo, MoviePace, MovieStyle, StoryMovie, Storybook } from '../types'
 
 export default function Storytime() {
@@ -63,20 +68,12 @@ export default function Storytime() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memoId])
 
-  const back = (
-    <Link to="/record" className="-ml-2 inline-flex h-12 items-center gap-1 rounded-xl px-2 text-base font-semibold text-ember hover:bg-ember-tint/50">
-      <ChevronLeft size={20} strokeWidth={2.5} aria-hidden="true" />
-      Memories
-    </Link>
-  )
-
   if (loading) {
     return (
-      <AppShell>
-        {back}
+      <AppShell back="/letterbox" subtitle="Storytime">
         <Card className="mt-4 py-14 text-center">
-          <Sparkles size={36} className="mx-auto text-ember" aria-hidden="true" />
-          <p className="mt-4 animate-pulse font-display text-2xl text-ink">Turning this memory into a storybook…</p>
+          <Sparkles size={34} strokeWidth={1.5} className="mx-auto text-vermilion" aria-hidden="true" />
+          <p className="text-title mt-4 animate-pulse">Turning this memory into a storybook…</p>
         </Card>
       </AppShell>
     )
@@ -84,11 +81,10 @@ export default function Storytime() {
 
   if (error || !book) {
     return (
-      <AppShell>
-        {back}
-        <Card className="mt-4 text-center">
-          <p className="text-base text-ink">{error ?? 'No storybook yet.'}</p>
-        </Card>
+      <AppShell back="/letterbox" subtitle="Storytime">
+        <Notice tone="error" className="mt-4">
+          {error ?? 'No storybook yet.'}
+        </Notice>
       </AppShell>
     )
   }
@@ -98,159 +94,113 @@ export default function Storytime() {
   const hasNative = book.pages.some((pg) => pg.text_native)
 
   return (
-    <AppShell>
+    <AppShell back="/letterbox" subtitle="Storytime">
       <div className="flex items-center justify-between gap-2">
-        {back}
-        <div className="flex gap-1">
+        <Segmented
+          label="Show as"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'movie', label: <><Clapperboard size={15} strokeWidth={1.5} aria-hidden="true" /> Movie</> },
+            { value: 'pages', label: <><BookOpen size={15} strokeWidth={1.5} aria-hidden="true" /> Pages</> },
+          ]}
+        />
+        <div className="flex items-center">
           {hasNative && mode === 'pages' && (
-            <button
-              onClick={() => setShowNative((v) => !v)}
-              className="h-10 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-field"
-            >
+            <TextButton tone="muted" onClick={() => setShowNative((v) => !v)}>
               {showNative ? 'English only' : 'Both languages'}
-            </button>
+            </TextButton>
           )}
-          <button
-            onClick={() => load(true)}
-            aria-label="Write a new version"
-            className="flex size-10 items-center justify-center rounded-xl text-muted hover:bg-field"
-          >
-            <RefreshCw size={18} aria-hidden="true" />
-          </button>
+          <IconButton label="Write a new version" onClick={() => load(true)}>
+            <RefreshCw size={18} strokeWidth={1.5} aria-hidden="true" />
+          </IconButton>
         </div>
-      </div>
-
-      <div className="mt-3 inline-flex rounded-xl bg-field p-1">
-        {([['movie', 'Movie', Clapperboard], ['pages', 'Pages', BookOpen]] as const).map(([m, label, Icon]) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-semibold ${mode === m ? 'bg-paper text-ink shadow-card' : 'text-muted'}`}
-          >
-            <Icon size={16} aria-hidden="true" /> {label}
-          </button>
-        ))}
       </div>
 
       {mode === 'movie' && (
         <div className="mt-3 space-y-2">
-          <OptionRow
-            label="Look"
-            value={style}
-            onChange={setStyle}
-            options={[
-              ['watercolor', '🎨 Watercolor'],
-              ['bedtime', '🌙 Bedtime'],
-              ['crayon', '🖍️ Crayon'],
-            ]}
-          />
-          <OptionRow
-            label="Speed"
-            value={pace}
-            onChange={setPace}
-            options={[
-              ['calm', 'Calm'],
-              ['normal', 'Normal'],
-              ['lively', 'Lively'],
-            ]}
-          />
+          <ChoiceLine label="Look">
+            <Segmented
+              label="Look"
+              value={style}
+              onChange={setStyle}
+              options={[
+                { value: 'watercolor', label: 'Watercolor' },
+                { value: 'bedtime', label: 'Bedtime' },
+                { value: 'crayon', label: 'Crayon' },
+              ]}
+            />
+          </ChoiceLine>
+          <ChoiceLine label="Speed">
+            <Segmented
+              label="Speed"
+              value={pace}
+              onChange={setPace}
+              options={[
+                { value: 'calm', label: 'Calm' },
+                { value: 'normal', label: 'Normal' },
+                { value: 'lively', label: 'Lively' },
+              ]}
+            />
+          </ChoiceLine>
         </div>
       )}
 
       {mode === 'movie' && currentMovie ? (
         <MovieViewer key={currentMovie.url} movie={currentMovie} onRemake={() => makeMovie(true)} remaking={making} />
       ) : mode === 'movie' ? (
-        <Card className="mt-3 text-center">
-          <Clapperboard size={36} className="mx-auto text-ember" aria-hidden="true" />
-          <p className="mt-3 font-display text-2xl text-ink">Make it a movie</p>
-          <p className="mt-1 text-base text-muted">
+        <Card className="mt-4 text-center">
+          <Clapperboard size={32} strokeWidth={1.5} className="mx-auto text-vermilion" aria-hidden="true" />
+          <p className="text-title mt-3">Make it a movie</p>
+          <p className="text-body mt-2 text-muted">
             Every card becomes a scene in one animated film, with music. The characters travel with you from card to card.
           </p>
-          <button
-            onClick={() => makeMovie()}
-            disabled={making}
-            className="mt-5 inline-flex h-14 items-center gap-2 rounded-2xl bg-ember px-6 text-lg font-semibold text-white shadow-ember disabled:opacity-60"
-          >
-            {making ? 'Painting the scenes… (about 20 s)' : `🎬 Make the ${style} movie`}
-          </button>
-          {movieError && <p className="mt-3 text-base text-ember">{movieError}</p>}
+          <PrimaryButton className="mt-5" onClick={() => makeMovie()} disabled={making}>
+            {making ? 'Painting the scenes… (about 20 s)' : `Make the ${style} movie`}
+          </PrimaryButton>
+          {movieError && <Notice tone="error" className="mt-3">{movieError}</Notice>}
         </Card>
       ) : (
         <>
-      <article className="mt-3 flex min-h-[28rem] flex-col rounded-3xl border border-cream-border bg-cream px-6 py-8 shadow-card">
+      <article className="surface-card mt-4 flex min-h-[28rem] flex-col px-6 py-8">
         {page === 0 ? (
           <header className="text-center">
-            <p className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-ember">
-              <Sparkles size={14} aria-hidden="true" /> Storytime
+            <p className="text-eyebrow inline-flex items-center gap-1.5 text-vermilion">
+              <Sparkles size={14} strokeWidth={1.5} aria-hidden="true" /> Storytime
             </p>
-            <h1 className="mt-2 font-display text-[32px] font-semibold leading-tight text-ink">{book.title}</h1>
+            <h1 className="text-title mt-2">{book.title}</h1>
             <Diamond className="mx-auto mt-4" />
           </header>
         ) : (
-          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-muted">{book.title}</p>
+          <p className="text-eyebrow text-center">{book.title}</p>
         )}
 
         <div className="my-auto py-8 text-center">
-          <p className="whitespace-pre-line font-serif text-[26px] leading-relaxed text-ink">{p.text}</p>
-          {showNative && p.text_native && (
-            <p className="mt-5 whitespace-pre-line text-xl leading-relaxed text-quote">{p.text_native}</p>
-          )}
+          <p className="font-display text-[27px] leading-relaxed whitespace-pre-line text-ink">{p.text}</p>
+          {showNative && p.text_native && <p className="text-story mt-5 whitespace-pre-line text-pine">{p.text_native}</p>}
         </div>
 
-        {p.illustration && (
-          <p className="rounded-2xl bg-paper/70 px-4 py-3 text-center text-sm italic text-muted">🎨 {p.illustration}</p>
-        )}
+        {p.illustration && <p className="text-meta rounded-[14px] bg-parchment px-4 py-3 text-center italic">{p.illustration}</p>}
       </article>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <button
-          disabled={page === 0}
-          onClick={() => setPage((n) => n - 1)}
-          aria-label="Previous page"
-          className="flex size-14 items-center justify-center rounded-full bg-paper text-ink shadow-card disabled:opacity-30"
-        >
-          <ChevronLeft size={24} aria-hidden="true" />
-        </button>
-        <div className="flex gap-1.5" aria-label={`Page ${page + 1} of ${book.pages.length}`}>
-          {book.pages.map((_, i) => (
-            <span key={i} className={`h-2 rounded-full transition-all ${i === page ? 'w-6 bg-ember' : 'w-2 bg-line'}`} />
-          ))}
-        </div>
-        <button
-          disabled={last}
-          onClick={() => setPage((n) => n + 1)}
-          aria-label="Next page"
-          className="flex size-14 items-center justify-center rounded-full bg-ember text-white shadow-ember disabled:opacity-30"
-        >
-          <ChevronRight size={24} aria-hidden="true" />
-        </button>
+      <div className="mt-4">
+        <Pager index={page} count={book.pages.length} nextDisabled={last} onPrev={() => setPage((n) => n - 1)} onNext={() => setPage((n) => n + 1)} />
       </div>
 
         </>
       )}
 
-      {memo?.audioUrl && <HearIt src={memo.audioUrl} />}
+      {memo?.audioUrl && <AudioCard className="mt-6" title="Hear Grandma tell it" meta="Her real recording of this memory" audioUrl={memo.audioUrl} from="Grandma" thumb={<Avatar name="Grandma" size={96} />} />}
     </AppShell>
   )
 }
 
-function HearIt({ src }: { src: string }) {
-  const { ref, playing, toggle } = useAudio(src)
+function ChoiceLine({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Card className="mt-6 flex items-center gap-4">
-      <audio ref={ref} src={src} preload="metadata" />
-      <button
-        onClick={toggle}
-        aria-label={playing ? 'Pause' : 'Play'}
-        className="flex size-14 shrink-0 items-center justify-center rounded-full bg-ember text-white shadow-ember"
-      >
-        {playing ? <Pause size={22} fill="currentColor" aria-hidden="true" /> : <Play size={22} fill="currentColor" className="ml-0.5" aria-hidden="true" />}
-      </button>
-      <div>
-        <p className="font-display text-xl text-ink">Hear Grandma tell it</p>
-        <p className="text-sm text-muted">Her real recording of this memory</p>
-      </div>
-    </Card>
+    <div className="flex items-center gap-3">
+      <span className="text-meta w-12 shrink-0">{label}</span>
+      {children}
+    </div>
   )
 }
 
@@ -324,7 +274,7 @@ function MovieViewer({ movie, onRemake, remaking }: { movie: StoryMovie; onRemak
 
   return (
     <>
-      <div className="relative mt-3 overflow-hidden rounded-3xl border border-cream-border bg-cream shadow-card">
+      <div className="surface-card relative mt-4 overflow-hidden">
         <video
           ref={ref}
           src={movie.url}
@@ -339,72 +289,23 @@ function MovieViewer({ movie, onRemake, remaking }: { movie: StoryMovie; onRemak
             className="absolute inset-0 flex items-center justify-center bg-ink/10"
             aria-label="Start the movie"
           >
-            <span className="flex size-20 items-center justify-center rounded-full bg-ember text-white shadow-ember">
-              <Play size={34} fill="currentColor" className="ml-1" aria-hidden="true" />
+            <span className="flex size-20 items-center justify-center rounded-full bg-pine text-card shadow-card">
+              <Play size={30} fill="currentColor" strokeWidth={0} className="ml-1" aria-hidden="true" />
             </span>
           </button>
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <button
-          disabled={card === 0}
-          onClick={prev}
-          aria-label="Previous card"
-          className="flex size-14 items-center justify-center rounded-full bg-paper text-ink shadow-card disabled:opacity-30"
-        >
-          <ChevronLeft size={24} aria-hidden="true" />
-        </button>
-        <div className="flex gap-1.5" aria-label={`Card ${card + 1} of ${rests.length}`}>
-          {rests.map((_, i) => (
-            <span key={i} className={`h-2 rounded-full transition-all ${i === card ? 'w-6 bg-ember' : 'w-2 bg-line'}`} />
-          ))}
-        </div>
-        <button
-          disabled={card >= last || playing}
-          onClick={next}
-          aria-label="Next card"
-          className="flex size-14 items-center justify-center rounded-full bg-ember text-white shadow-ember disabled:opacity-30"
-        >
-          <ChevronRight size={24} aria-hidden="true" />
-        </button>
+      <div className="mt-4">
+        <Pager index={card} count={rests.length} label="Card" prevDisabled={card === 0} nextDisabled={card >= last || playing} onPrev={prev} onNext={next} />
       </div>
 
-      <div className="mt-3 flex justify-center gap-2">
-        <button onClick={playAll} className="h-10 rounded-xl px-3 text-sm font-semibold text-ember hover:bg-ember-tint/50">
-          Play all
-        </button>
-        <button onClick={onRemake} disabled={remaking} className="h-10 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-field disabled:opacity-50">
+      <div className="mt-2 flex justify-center gap-2">
+        <TextButton onClick={playAll}>Play all</TextButton>
+        <TextButton tone="muted" onClick={onRemake} disabled={remaking}>
           {remaking ? 'Repainting…' : 'Repaint movie'}
-        </button>
+        </TextButton>
       </div>
     </>
-  )
-}
-
-function OptionRow<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string
-  value: T
-  onChange: (v: T) => void
-  options: ReadonlyArray<readonly [T, string]>
-}) {
-  return (
-    <div className="flex items-center gap-2 overflow-x-auto">
-      <span className="w-14 shrink-0 text-sm font-semibold text-muted">{label}</span>
-      {options.map(([v, text]) => (
-        <button
-          key={v}
-          onClick={() => onChange(v)}
-          className={`h-10 shrink-0 rounded-full px-4 text-sm font-semibold ${value === v ? 'bg-ember text-white shadow-ember' : 'bg-paper text-ink shadow-card'}`}
-        >
-          {text}
-        </button>
-      ))}
-    </div>
   )
 }

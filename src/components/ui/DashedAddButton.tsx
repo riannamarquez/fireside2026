@@ -5,9 +5,9 @@ export function DashedAddButton({ children, onClick }: { children: string; onCli
     <button
       type="button"
       onClick={onClick}
-      className="flex h-16 w-full items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-cream-border bg-cream text-lg font-semibold text-ember hover:bg-sand"
+      className="flex h-14 w-full items-center justify-center gap-2 rounded-[14px] border border-dashed border-pine/35 font-serif text-[17px] text-pine hover:bg-sage/50"
     >
-      <Plus size={20} strokeWidth={2.5} aria-hidden="true" />
+      <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
       {children}
     </button>
   )

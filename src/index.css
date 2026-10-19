@@ -1,34 +1,37 @@
 @import "tailwindcss";
 
+/* Postscript: warm paper, deep green, vermilion. Sampled from design/out/firesidesaesthetic.png. */
 @theme {
-  --font-display: "Fraunces", Georgia, serif;
-  --font-serif: "Newsreader", Georgia, serif;
-  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-serif: "Newsreader", "Iowan Old Style", Georgia, serif;
 
-  --color-ember: #9e4734;
-  --color-ember-dark: #873e2e;
-  --color-ember-tint: #f2ddd3;
-  --color-ink: #2a2622;
-  --color-muted: #77716a;
-  --color-page: #f2f1f5;
-  --color-paper: #ffffff;
-  --color-field: #f2f1f5;
-  --color-sand: #f1ece5;
-  --color-review-bg: #e6e2db;
-  --color-cream: #faf6ee;
-  --color-cream-border: #dccdb5;
-  --color-draft: #f4e8c6;
-  --color-draft-ink: #8a6a28;
-  --color-line: #e7e4e0;
-  --color-quote: #5e5248;
-  --color-peach: #f2c7ae;
-  --color-parchment: #f6e9df;
+  --color-cream: #f5efe3; /* page paper */
+  --color-card: #fbf7ef;
+  --color-parchment: #efe6d4; /* envelopes, inset surfaces */
+  --color-pine: #1f4d3a; /* wordmark, play buttons, primary CTA, selected radios */
+  --color-pine-dark: #173b2c;
+  --color-vermilion: #c8492f; /* mic button, chapter numerals, chop seals */
+  --color-vermilion-dark: #a93b25;
+  --color-oxblood: #4b1414; /* the record button */
+  --color-oxblood-dark: #3a0f0f;
+  --color-mango: #e9a23b; /* illustrations only */
+  --color-sage: #dde6d7; /* selected options */
+  --color-peach: #f3d6c1; /* illustration fallbacks */
+  --color-ink: #2b2622;
+  --color-muted: #7a7268;
+  --color-hairline: #e6ded0;
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.04);
-  --shadow-ember: 0 6px 16px rgb(158 71 52 / 0.25);
-  --shadow-float: 0 -2px 8px rgb(0 0 0 / 0.04), 0 12px 32px rgb(0 0 0 / 0.1);
+  --radius-card: 18px;
+  --shadow-card: 0 6px 20px rgb(60 40 20 / 0.08);
+  --shadow-float: 0 -4px 24px rgb(60 40 20 / 0.1);
+  --shadow-mic: 0 10px 28px rgb(200 73 47 / 0.32);
 
   --animate-halo: halo 1.8s ease-in-out infinite;
+  --animate-wave: wave 0.9s ease-in-out infinite;
+  --animate-drawer: drawer 0.22s ease-out;
+  --animate-stamp-press: stamp-press 600ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  --animate-rise: rise 520ms ease-out both;
+  --animate-drop: drop 0.18s ease-out;
 
   @keyframes halo {
     0%,
@@ -37,39 +40,166 @@
       opacity: 1;
     }
     50% {
-      transform: scale(1.1);
-      opacity: 0.55;
+      transform: scale(1.12);
+      opacity: 0.5;
+    }
+  }
+  @keyframes wave {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.45);
+    }
+  }
+  /* The logo lands like a chop pressed onto paper: big and faint, a small squash, ink settles. */
+  @keyframes stamp-press {
+    0% {
+      opacity: 0;
+      transform: scale(1.15);
+      filter: blur(3px);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(0.97, 1.03);
+      filter: blur(0.6px);
+    }
+    75% {
+      transform: scale(1.015, 0.99);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      filter: blur(0);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes drop {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes drawer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
     }
   }
 }
 
 @layer base {
+  :root {
+    /* Very subtle paper grain: SVG fractal noise at low opacity. */
+    --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
   html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-page font-sans text-ink antialiased;
+    @apply bg-cream font-serif text-ink antialiased lining-nums;
+    background-image: var(--paper-grain);
   }
   :focus-visible {
-    outline: 2px solid rgb(158 71 52 / 0.6);
+    outline: 2px solid rgb(31 77 58 / 0.55);
     outline-offset: 2px;
   }
 }
 
+/* The type scale and the card surface. Pages use these instead of one-off sizes. */
 @layer components {
-  .text-eyebrow {
-    @apply font-sans text-xs font-semibold uppercase tracking-[0.14em] text-ember;
+  .text-wordmark {
+    @apply font-display text-[40px] font-semibold italic leading-none tracking-[-0.01em] text-pine;
   }
-  .text-display {
-    @apply font-display font-semibold tracking-[-0.02em] leading-[1.05];
+  .text-title {
+    @apply font-display text-[31px] font-semibold leading-[1.12] text-ink;
+  }
+  .text-heading {
+    @apply font-display text-[25px] font-semibold leading-tight text-ink;
+  }
+  .text-display-xl {
+    @apply font-display text-[40px] font-semibold leading-[1.05] text-ink;
+  }
+  .text-card-title {
+    @apply font-serif text-[19px] font-medium leading-snug text-ink;
+  }
+  .text-body {
+    @apply font-serif text-[17px] leading-[1.55] text-ink;
+  }
+  .text-meta {
+    @apply font-serif text-[13.5px] leading-snug text-muted;
+  }
+  .text-eyebrow {
+    @apply font-serif text-[12px] font-medium uppercase tracking-[0.18em] text-muted;
   }
   .text-story {
-    @apply font-serif text-xl leading-[1.85] text-ink;
+    @apply font-serif text-[19px] leading-[1.75] text-ink;
+  }
+  .bg-paper {
+    @apply bg-cream;
+    background-image: var(--paper-grain);
+  }
+  .surface-card {
+    @apply rounded-card border border-black/[0.04] bg-card shadow-card;
   }
 }
 
+/* Bottom sheet: slides up (280ms ease-out); follows the finger while dragging. */
+.sheet-panel {
+  transition:
+    transform 280ms ease-out,
+    height 280ms ease-out;
+}
+.sheet-panel.is-dragging {
+  transition: none;
+}
+.sheet-fade {
+  transition: opacity 280ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* Bottom sheet: fade only, no slide. */
+  .sheet-panel {
+    transform: none !important;
+    opacity: 0;
+    transition: opacity 200ms ease-out !important;
+  }
+  .sheet-panel.is-open {
+    opacity: 1;
+  }
+  .sheet-fade {
+    transition-duration: 200ms !important;
+  }
+  /* Welcome screen: a plain fade instead of the press and rise. */
+  .animate-stamp-press,
+  .animate-rise {
+    animation: fade 400ms ease-out both !important;
+  }
   *,
   *::before,
   *::after {

@@ -317,3 +317,24 @@ def write_storybook(memo: dict, stage: dict | None, people: list[dict] | None = 
         "Write the storybook.",
         STORYBOOK_SCHEMA,
     )
+
+
+# ---------- Postscript: sensitive-story check ----------
+
+SENSITIVITY_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["sensitive", "mental_health", "reason"],
+    "properties": {
+        "sensitive": {"type": "boolean"},
+        "mental_health": {"type": "boolean", "description": "True if it touches mental illness, depression, suicide or addiction."},
+        "reason": {"type": ["string", "null"], "description": "A few words, e.g. 'an arrest in the family'."},
+    },
+}
+
+SENSITIVITY_SYSTEM = """You read a transcript of a grandparent's voice letter to her family (any language) and decide whether it mentions difficult moments the family might want to hear at a chosen time: arrests, jail, police, mental illness, depression, suicide, addiction, divorce, affairs, estrangement, disowning, serious family fights, or things she says she has never told anyone. Ordinary sadness or hardship (being poor, missing home) is not sensitive on its own."""
+
+
+def check_sensitivity(transcript: str) -> dict:
+    """Transcript -> {"sensitive": bool, "mental_health": bool, "reason": str | None}. Only suggests; never seals."""
+    return _call_json("sensitivity", SENSITIVITY_SYSTEM, f"<letter_transcript>\n{transcript}\n</letter_transcript>", SENSITIVITY_SCHEMA)

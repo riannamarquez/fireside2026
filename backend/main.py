@@ -288,4 +288,15 @@ def list_chapters(status: ChapterStatus | None = None, stage_id: int | None = No
     return query.execute().data
 
 
+class SensitivityRequest(BaseModel):
+    transcript: str
+
+
+@router.post("/sensitivity")
+def post_sensitivity(req: SensitivityRequest):
+    """Postscript: does this letter mention difficult moments? The frontend falls back to a keyword check if this fails."""
+    require_ai()
+    return ai.check_sensitivity(req.transcript)
+
+
 app.include_router(router)

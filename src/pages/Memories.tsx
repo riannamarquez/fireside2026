@@ -1,8 +1,16 @@
 // Every memo with its transcript and AI tags, grouped by life stage (timeline) or by place.
 // Each life stage can be turned into a draft chapter, which then shows up in Review.
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { generateChapter, getLifeMap, listMemos, reprocessMemo } from '../api'
+import { AudioCard } from '../components/ui/AudioCard'
+import { PrimaryButton, SecondaryButton } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { Notice } from '../components/ui/Notice'
+import { PageHeader } from '../components/ui/PageHeader'
+import { SectionHeader } from '../components/ui/SectionHeader'
+import { Segmented } from '../components/ui/Segmented'
+import { thumbFor } from '../lib/illustrations'
 import type { LifeStage, Memo } from '../types'
 
 type GroupBy = 'stage' | 'place'
@@ -72,65 +80,51 @@ export default function Memories() {
     }
   }
 
-  if (memos === null) return error ? <p className="text-red-700">{error}</p> : <p className="text-stone-500">Loading…</p>
+  if (memos === null) return error ? <Notice tone="error">{error}</Notice> : <p className="text-body text-center text-muted">Loading…</p>
 
   const groups = groupMemos(memos, stages, groupBy)
 
   return (
     <div className="space-y-8">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-semibold">Memories</h1>
-        <p className="text-stone-600">
-          Every recording, transcribed and placed on the timeline. Turn a life stage into a chapter when it has enough memories.
-        </p>
-        <div className="inline-flex rounded-lg border border-stone-300 bg-white p-1">
-          {(['stage', 'place'] as const).map((g) => (
-            <button
-              key={g}
-              onClick={() => setGroupBy(g)}
-              className={`rounded-md px-4 py-2 text-base font-medium ${groupBy === g ? 'bg-stone-800 text-white' : 'text-stone-700'}`}
-            >
-              By {g === 'stage' ? 'time period' : 'place'}
-            </button>
-          ))}
-        </div>
-      </header>
+      <PageHeader title="Memories" subtitle="Every recording, transcribed and placed on the timeline. Turn a life stage into a chapter when it has enough memories." />
+      <div className="text-center">
+        <Segmented
+          label="Group memories"
+          value={groupBy}
+          onChange={setGroupBy}
+          options={[
+            { value: 'stage', label: 'By time period' },
+            { value: 'place', label: 'By place' },
+          ]}
+        />
+      </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-red-800">{error}</p>}
-      {memos.length === 0 && <p className="text-stone-600">No recordings yet.</p>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {memos.length === 0 && <p className="text-body text-center text-muted">No recordings yet.</p>}
 
       {groups.map((g) => (
-        <section key={g.key} className="space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-stone-200 pb-2">
-            <div>
-              <h2 className="text-2xl font-semibold">{g.title}</h2>
-              <p className="text-base text-stone-500">
-                {[g.subtitle, `${g.memos.length} ${g.memos.length === 1 ? 'memory' : 'memories'}`].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-            {groupBy === 'stage' && g.stageId && (
-              <button
-                disabled={g.memos.length === 0 || writing !== null}
-                onClick={() => writeChapter(g.stageId!)}
-                className="rounded-lg bg-stone-800 px-4 py-2 text-base font-semibold text-white disabled:opacity-40"
-              >
-                {writing === g.stageId ? 'Writing…' : 'Write chapter'}
-              </button>
-            )}
-          </div>
+        <section key={g.key}>
+          <SectionHeader title={g.title} />
+          <p className="text-meta -mt-2 mb-3">{[g.subtitle, `${g.memos.length} ${g.memos.length === 1 ? 'memory' : 'memories'}`].filter(Boolean).join(' · ')}</p>
+          {groupBy === 'stage' && g.stageId && (
+            <SecondaryButton compact className="mb-4" disabled={g.memos.length === 0 || writing !== null} onClick={() => writeChapter(g.stageId!)}>
+              {writing === g.stageId ? 'Writing…' : 'Write chapter'}
+            </SecondaryButton>
+          )}
 
-          {g.memos.length === 0 && <p className="text-base text-stone-400">Nothing about this period yet.</p>}
+          {g.memos.length === 0 && <p className="text-meta">Nothing about this period yet.</p>}
 
-          <ul className="space-y-3">
+          <div className="space-y-4">
             {g.memos.map((m) => (
               <MemoCard
                 key={m.id}
                 memo={m}
+                stages={stages}
                 stageLabel={groupBy === 'place' ? stages.find((s) => s.id === m.stageId)?.label : undefined}
                 onUpdate={(updated) => setMemos((prev) => prev?.map((x) => (x.id === updated.id ? updated : x)) ?? prev)}
               />
             ))}
-          </ul>
+          </div>
         </section>
       ))}
     </div>
@@ -140,7 +134,8 @@ export default function Memories() {
 // Saved without real AI output (backend had no OpenAI key, or an early upload).
 const needsRetry = (m: Memo) => !m.transcript?.trim() || m.transcript.startsWith('[stub')
 
-function MemoCard({ memo, stageLabel, onUpdate }: { memo: Memo; stageLabel?: string; onUpdate: (m: Memo) => void }) {
+function MemoCard({ memo, stages, stageLabel, onUpdate }: { memo: Memo; stages: LifeStage[]; stageLabel?: string; onUpdate: (m: Memo) => void }) {
+  const navigate = useNavigate()
   const t = memo.tags
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState<string | null>(null)
@@ -159,67 +154,40 @@ function MemoCard({ memo, stageLabel, onUpdate }: { memo: Memo; stageLabel?: str
 
   if (needsRetry(memo)) {
     return (
-      <li className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4">
-        <p className="font-medium text-amber-900">This recording wasn't transcribed</p>
-        <p className="mt-1 text-base text-amber-800">It was saved before the AI could run. The audio is safe.</p>
-        {memo.audioUrl && <audio controls src={memo.audioUrl} className="mt-3 w-full" />}
-        <button
-          onClick={retry}
-          disabled={retrying}
-          className="mt-3 rounded-lg bg-stone-800 px-4 py-2 text-base font-semibold text-white disabled:opacity-50"
-        >
+      <Card tone="parchment">
+        <p className="text-card-title">This recording wasn’t transcribed</p>
+        <p className="text-meta mt-1">It was saved before the AI could run. The audio is safe.</p>
+        {memo.audioUrl && <AudioCard className="mt-3" title="The recording" audioUrl={memo.audioUrl} thumb={null} />}
+        <PrimaryButton compact arrow={false} className="mt-3" onClick={retry} disabled={retrying}>
           {retrying ? 'Transcribing…' : 'Retry transcription'}
-        </button>
-        {retryError && <p className="mt-2 text-base text-red-700">{retryError}</p>}
-      </li>
+        </PrimaryButton>
+        {retryError && <Notice tone="error" className="mt-2">{retryError}</Notice>}
+      </Card>
     )
   }
-  const chips = [
-    stageLabel,
-    yearsOf(memo),
-    t?.place,
-    ...(t?.people ?? []),
-    ...(t?.unmatched_people ?? []).map((p) => `${p} (new)`),
-  ].filter(Boolean) as string[]
+  const chips = [stageLabel, yearsOf(memo), t?.place, ...(t?.people ?? []), ...(t?.unmatched_people ?? []).map((p) => `${p} (new)`), ...(t?.themes ?? []), t?.tone].filter(Boolean) as string[]
+  const menu = memo.transcript && !t?.sensitive ? [{ label: 'Make it a Storytime book', onSelect: () => navigate(`/storytime/${memo.id}`) }] : []
 
   return (
-    <li className="rounded-xl border border-stone-200 bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-medium">{t?.summary ?? (memo.transcript ? 'Memory' : 'Not transcribed yet')}</p>
-        {t?.sensitive && (
-          <span title={t.sensitivity_reason ?? ''} className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-sm text-amber-900">
-            🔒 Private
-          </span>
-        )}
-      </div>
-
+    <AudioCard
+      title={t?.summary ?? (memo.transcript ? 'Memory' : 'Not transcribed yet')}
+      meta={new Date(memo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+      note={t?.sensitive ? 'Private' : undefined}
+      audioUrl={memo.audioUrl || undefined}
+      thumb={thumbFor(memo.stageId, stages)}
+      menu={menu}
+    >
       {chips.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {chips.map((c, i) => (
-            <span key={i} className="rounded-full bg-stone-100 px-2.5 py-0.5 text-sm text-stone-700">{c}</span>
+            <span key={i} className="rounded-full bg-parchment px-2.5 py-0.5 font-serif text-[13.5px] text-ink/80">
+              {c}
+            </span>
           ))}
-          {(t?.themes ?? []).map((th) => (
-            <span key={th} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-sm text-blue-800">{th}</span>
-          ))}
-          {t?.tone && <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-sm text-purple-800">{t.tone}</span>}
         </div>
       )}
-
       {memo.transcript && <Transcript memo={memo} />}
-
-      {memo.audioUrl && <audio controls src={memo.audioUrl} className="mt-3 w-full" />}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-stone-400">Recorded {new Date(memo.createdAt).toLocaleString()}</p>
-        {memo.transcript && !t?.sensitive && (
-          <Link
-            to={`/storytime/${memo.id}`}
-            className="rounded-full bg-amber-100 px-4 py-1.5 text-base font-semibold text-amber-900 hover:bg-amber-200"
-          >
-            ✨ Storytime
-          </Link>
-        )}
-      </div>
-    </li>
+    </AudioCard>
   )
 }
 
@@ -232,24 +200,21 @@ function Transcript({ memo }: { memo: Memo }) {
 
   return (
     <details className="mt-3">
-      <summary className="cursor-pointer text-base text-stone-500">
-        Transcript{memo.tags?.language ? ` · ${memo.tags.language}` : ''}
-      </summary>
+      <summary className="text-meta cursor-pointer">Transcript{memo.tags?.language ? ` · ${memo.tags.language}` : ''}</summary>
       {hasTranslation && (
-        <div className="mt-2 inline-flex rounded-lg border border-stone-300 bg-white p-0.5 text-sm">
-          {(['original', 'english'] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              className={`rounded-md px-3 py-1 font-medium ${lang === l ? 'bg-stone-800 text-white' : 'text-stone-700'}`}
-            >
-              {l === 'original' ? `Original${memo.tags?.language ? ` (${memo.tags.language})` : ''}` : 'English'}
-            </button>
-          ))}
+        <div className="mt-2">
+          <Segmented
+            label="Transcript language"
+            value={lang}
+            onChange={setLang}
+            options={[
+              { value: 'original', label: `Original${memo.tags?.language ? ` (${memo.tags.language})` : ''}` },
+              { value: 'english', label: 'English' },
+            ]}
+          />
         </div>
       )}
-      <p className="mt-2 text-base leading-relaxed text-stone-700">{text}</p>
+      <p className="text-body mt-2">{text}</p>
     </details>
   )
 }

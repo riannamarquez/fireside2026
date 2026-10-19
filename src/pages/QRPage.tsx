@@ -2,6 +2,11 @@
 // Scanning the QR opens /r on the phone: one big record button that uploads to the backend.
 import { QRCodeCanvas } from 'qrcode.react'
 import { useEffect, useRef, useState } from 'react'
+import { SecondaryButton } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { Notice } from '../components/ui/Notice'
+import { PageHeader } from '../components/ui/PageHeader'
+import { SectionHeader } from '../components/ui/SectionHeader'
 import { type ApiMemo, type ApiStage, listMemos, listStages, publicBaseUrl, RECORD_PATH } from '../lib/qrApi'
 
 const POLL_MS = 3000
@@ -58,49 +63,55 @@ export default function QRPage() {
   const stageLabel = (id: number | null) => stages.find((s) => s.id === id)?.label
 
   return (
-    <div className="grid gap-6 md:grid-cols-[auto_1fr] md:items-start">
-        <section className="flex flex-col items-center gap-4 rounded-2xl bg-white p-6 shadow-sm">
-          <div ref={wrapRef}>
-            <QRCodeCanvas value={url} size={280} marginSize={2} level="M" />
-          </div>
-          <p className="text-center text-lg text-stone-700">Scan with your phone camera to record a memory</p>
-          <p className="break-all text-center text-xs text-stone-400">{url}</p>
-          <div className="flex flex-wrap justify-center gap-2 print:hidden">
-            <button onClick={copy} className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm">{copied ? 'Copied!' : 'Copy link'}</button>
-            <button onClick={download} className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm">Download PNG</button>
-            <button onClick={() => window.print()} className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm">Print</button>
-          </div>
-          {url.startsWith('http://') && (
-            <p className="max-w-xs text-center text-xs text-amber-800 print:hidden">
-              Phones only allow the mic over HTTPS: run <code>npm run dev:phone</code>.
-            </p>
-          )}
-        </section>
+    <div className="space-y-6">
+      <PageHeader title="Record from a phone" subtitle="Scan with your phone camera to record a memory." />
+      <Card className="flex flex-col items-center gap-4 text-center">
+        <div ref={wrapRef}>
+          <QRCodeCanvas value={url} size={240} marginSize={2} level="M" fgColor="#1F4D3A" bgColor="#FBF7EF" />
+        </div>
+        <p className="text-meta break-all">{url}</p>
+        <div className="grid w-full grid-cols-3 gap-2 print:hidden">
+          <SecondaryButton compact onClick={copy}>
+            {copied ? 'Copied!' : 'Copy'}
+          </SecondaryButton>
+          <SecondaryButton compact onClick={download}>
+            PNG
+          </SecondaryButton>
+          <SecondaryButton compact onClick={() => window.print()}>
+            Print
+          </SecondaryButton>
+        </div>
+        {url.startsWith('http://') && (
+          <p className="text-meta print:hidden">
+            Phones only allow the mic over HTTPS: run <code>npm run dev:phone</code>.
+          </p>
+        )}
+      </Card>
 
-        <section className="rounded-2xl bg-white p-4 shadow-sm print:hidden">
-          <h2 className="mb-3 font-semibold">Latest memories</h2>
-          {backendDown && (
-            <p className="mb-3 rounded-lg bg-red-50 p-2 text-sm text-red-700">
-              Can't reach the backend. Start it: <code>cd backend && venv/bin/uvicorn main:app --reload</code>
-            </p>
-          )}
-          {!backendDown && memos.length === 0 && <p className="text-stone-500">Nothing yet. Scan the code and record one.</p>}
-          <ul className="flex flex-col gap-3">
-            {memos.map((m) => {
-              const t = m.tags ?? { stage_id: null }
-              const years = t.year_start ? `${t.year_is_estimate ? '~' : ''}${t.year_start}${t.year_end && t.year_end !== t.year_start ? `–${t.year_end}` : ''}` : null
-              return (
-                <li key={m.id} className="border-b border-stone-100 pb-3 last:border-0">
-                  <p className="text-stone-800">{t.summary ?? m.transcript?.slice(0, 160)}</p>
-                  <p className="mt-1 text-xs text-stone-500">
-                    {[stageLabel(m.stage_id) ?? 'Not placed yet', t.place, years, ...(t.people ?? [])].filter(Boolean).join(' · ')}
-                    {t.sensitive && ' · 🔒 private'}
-                  </p>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
+      <section className="print:hidden">
+        <SectionHeader title="Latest memories" />
+        {backendDown && (
+          <Notice tone="error" className="mb-3">
+            Can’t reach the backend. Start it: <code>cd backend && venv/bin/uvicorn main:app --reload</code>
+          </Notice>
+        )}
+        {!backendDown && memos.length === 0 && <p className="text-meta">Nothing yet. Scan the code and record one.</p>}
+        <ul className="divide-y divide-hairline">
+          {memos.map((m) => {
+            const t = m.tags ?? { stage_id: null }
+            const years = t.year_start ? `${t.year_is_estimate ? '~' : ''}${t.year_start}${t.year_end && t.year_end !== t.year_start ? `–${t.year_end}` : ''}` : null
+            return (
+              <li key={m.id} className="py-3">
+                <p className="text-body">{t.summary ?? m.transcript?.slice(0, 160)}</p>
+                <p className="text-meta mt-1">
+                  {[stageLabel(m.stage_id) ?? 'Not placed yet', t.place, years, ...(t.people ?? [])].filter(Boolean).join(' · ')}
+                  {t.sensitive && ' · private'}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
     </div>
   )
 }

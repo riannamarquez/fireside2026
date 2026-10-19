@@ -1,4 +1,5 @@
 import type { Passage } from '../types'
+import { getToday } from './today'
 
 const WORDS = [
   'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
@@ -21,7 +22,7 @@ export function initials(name: string | null | undefined): string {
     .join('')
 }
 
-export function greeting(date = new Date()): string {
+export function greeting(date = getToday()): string {
   const hour = date.getHours()
   if (hour < 12) return 'Good morning'
   if (hour < 17) return 'Good afternoon'
@@ -45,7 +46,7 @@ export function formatDuration(seconds: number | null | undefined): string {
 }
 
 // "Today, 9:42 AM" / "Yesterday, 9:42 AM" / "Mon, Oct 12, 9:42 AM"
-export function formatMemoDate(iso: string, now = new Date()): string {
+export function formatMemoDate(iso: string, now = getToday()): string {
   const date = new Date(iso)
   const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   const dayDiff = Math.round(
@@ -64,4 +65,19 @@ export function memoTitle(transcript: string | undefined, createdAt: string): st
     return words.length > 6 ? `${title}…` : title
   }
   return `Memory from ${new Date(createdAt).toLocaleDateString(undefined, { weekday: 'long' })}`
+}
+
+// A letter's title: the first few words she said, or "Letter from Tuesday".
+export function letterTitle(transcript: string | undefined, createdAt: string): string {
+  const text = transcript?.trim() ?? ''
+  if (/^[\u3400-\u9fff]/.test(text)) {
+    const first = text.split(/[，。！？,.!?]/)[0] ?? ''
+    return first.length > 14 ? `${first.slice(0, 14)}…` : first
+  }
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length) {
+    const title = words.slice(0, 6).join(' ').replace(/[.,;:!?]+$/, '')
+    return words.length > 6 ? `${title}…` : title
+  }
+  return `Letter from ${new Date(createdAt).toLocaleDateString(undefined, { weekday: 'long' })}`
 }
